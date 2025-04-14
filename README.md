@@ -18,3 +18,10 @@ NODE_ENV=dev
 # TODO
 - Fix local connection issues
 - ~~Fix chown messages~~
+- Fix users switching colors when rejoin or ch set
+
+# Preview
+https://github.com/user-attachments/assets/3e1052ce-df88-4b19-84a5-20e4425b712c
+
+https://github.com/user-attachments/assets/954bd57f-b0bb-46cc-b649-cbac6685339a
+
