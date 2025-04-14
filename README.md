@@ -14,3 +14,7 @@ NODE_ENV=dev
 # Dependancies
 - Run `npm i`
 - `node index.js` to run the server.
+
+# TODO
+- Fix local connection issues
+- __Fix chown messages__
