@@ -17,4 +17,4 @@ NODE_ENV=dev
 
 # TODO
 - Fix local connection issues
-- __Fix chown messages__
+- _-Fix chown messages-_
