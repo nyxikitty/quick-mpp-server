@@ -30,7 +30,8 @@
             PARTICIPANT: 0x11,
             NOTE_QUOTA: 0x12,
             NOTIFICATION: 0x13,
-            CH_INFO: 0x14
+            CH_INFO: 0x14,
+            CHAT_HISTORY: 0x15
         },
 
         MESSAGE_MAP: {
@@ -53,7 +54,7 @@
             'p': 'PARTICIPANT',
             'nq': 'NOTE_QUOTA',
             'notification': 'NOTIFICATION',
-            'c': 'CH_INFO'
+            'c': 'CHAT_HISTORY'
         },
 
         encode: function(msg) {
@@ -167,6 +168,11 @@
                 case 'ch':
                     parts.push(this.encodeString(msg._id || ''));
                     if (msg.set) parts.push(this.encodeChannelSettings(msg.set));
+                    break;
+
+                case 'c':
+                    // Chat history
+                    if (msg.c) parts.push(this.encodeArray(msg.c, this.encodeChatMessage.bind(this)));
                     break;
 
                 case 'kickban':
@@ -445,6 +451,15 @@
                 this.encodeString(settings.color || ''),
                 this.encodeBoolean(settings.lobby === true)
             ]);
+        },
+
+        encodeChatMessage: function(msg) {
+            var parts = [
+                this.encodeString(msg.a || ''),
+                this.encodeNumber(msg.t || Date.now())
+            ];
+            if (msg.p) parts.push(this.encodeParticipant(msg.p));
+            return this.concatArrayBuffers(parts);
         },
 
         // Complex type decoders

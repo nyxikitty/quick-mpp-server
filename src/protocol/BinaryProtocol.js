@@ -33,7 +33,8 @@ class BinaryProtocol {
         PARTICIPANT: 0x11,
         NOTE_QUOTA: 0x12,
         NOTIFICATION: 0x13,
-        CH_INFO: 0x14
+        CH_INFO: 0x14,
+        CHAT_HISTORY: 0x15
     };
 
     static MESSAGE_MAP = {
@@ -55,7 +56,8 @@ class BinaryProtocol {
         'ls': 'LS',
         'p': 'PARTICIPANT',
         'nq': 'NOTE_QUOTA',
-        'notification': 'NOTIFICATION'
+        'notification': 'NOTIFICATION',
+        'c': 'CHAT_HISTORY'
     };
 
     /**
@@ -176,8 +178,8 @@ class BinaryProtocol {
             case 'ch':
                 parts.push(this.encodeString(msg._id || ''));
                 if (msg.ch) parts.push(this.encodeChannel(msg.ch));
-                if (msg.p) parts.push(this.encodeArray(msg.p, this.encodeParticipant.bind(this)));
-                if (msg.ppl !== undefined) parts.push(this.encodeNumber(msg.ppl));
+                if (msg.ppl) parts.push(this.encodeArray(msg.ppl, this.encodeParticipant.bind(this)));
+                if (msg.p) parts.push(this.encodeString(msg.p));
                 break;
 
             case 'ls':
@@ -217,6 +219,11 @@ class BinaryProtocol {
             case 'devices':
                 if (msg.list) parts.push(this.encodeArray(msg.list, this.encodeString.bind(this)));
                 if (msg.status) parts.push(this.encodeString(msg.status));
+                break;
+
+            case 'c':
+                // Chat history
+                if (msg.c) parts.push(this.encodeArray(msg.c, this.encodeChatMessage.bind(this)));
                 break;
 
             default:
@@ -461,6 +468,15 @@ class BinaryProtocol {
             this.encodeNumber(params.a || 0),
             this.encodeNumber(params.allowance || 0)
         ]);
+    }
+
+    static encodeChatMessage(msg) {
+        const parts = [
+            this.encodeString(msg.a || ''),
+            this.encodeNumber(msg.t || Date.now())
+        ];
+        if (msg.p) parts.push(this.encodeParticipant(msg.p));
+        return Buffer.concat(parts);
     }
 
     // Complex type decoders
