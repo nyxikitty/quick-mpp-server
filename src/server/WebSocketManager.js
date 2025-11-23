@@ -1,5 +1,6 @@
 const { WebSocket } = require('ws');
 const { generateClientId } = require('./utils/idGenerator');
+const BinaryProtocol = require('../protocol/BinaryProtocol');
 
 class WebSocketManager {
     constructor(server, messageHandler) {
@@ -15,7 +16,7 @@ class WebSocketManager {
 
             if (!this.server.clients.has(clientId)) {
                 this.server.clients.set(clientId, {
-                    connections: new Map(), 
+                    connections: new Map(),
                     participant: null,
                     channelId: null,
                     userId: clientId
@@ -27,8 +28,15 @@ class WebSocketManager {
 
             ws.on('message', (data) => {
                 try {
-                    const messages = JSON.parse(data);
-                    messages.forEach((msg) => this.messageHandler.handleMessage(clientId, msg));
+                    // Handle binary protocol
+                    if (Buffer.isBuffer(data)) {
+                        const messages = BinaryProtocol.decode(data);
+                        messages.forEach((msg) => this.messageHandler.handleMessage(clientId, msg));
+                    } else {
+                        // Fallback to JSON for backwards compatibility
+                        const messages = JSON.parse(data);
+                        messages.forEach((msg) => this.messageHandler.handleMessage(clientId, msg));
+                    }
                 } catch (err) {
                     console.error('Invalid message received:', err);
                 }

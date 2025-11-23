@@ -1,5 +1,6 @@
 const WebSocket = require('ws');
 const NoteQuota = require("./ratelimiters/NoteQuota");
+const BinaryProtocol = require("../protocol/BinaryProtocol");
 
 class MessageHandler {
     constructor(server, clientManager, channelManager) {
@@ -41,16 +42,16 @@ class MessageHandler {
     }
 
     sendToClient(client, message) {
-        const data = JSON.stringify(message);
+        const data = BinaryProtocol.encodeMultiple(message);
         for (const ws of client.connections.values()) {
             if (ws.readyState === WebSocket.OPEN) ws.send(data);
         }
     }
 
     broadcastToClientConnections(client, message) {
-        const str = JSON.stringify(message);
+        const data = BinaryProtocol.encodeMultiple(message);
         for (const ws of client.connections.values()) {
-            if (ws.readyState === WebSocket.OPEN) ws.send(str);
+            if (ws.readyState === WebSocket.OPEN) ws.send(data);
         }
     }
 
