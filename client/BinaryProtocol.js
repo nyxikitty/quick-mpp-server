@@ -312,7 +312,15 @@
                         msg.ppl = pplResult.value;
                         offset += pplResult.bytesRead;
                     }
-                    if (offset < payload.byteLength) msg.ppl = readNumber();
+                    if (offset < payload.byteLength) msg.p = readString();
+                    break;
+
+                case 'c':
+                    if (offset < payload.byteLength) {
+                        var chatResult = this.decodeArray(payload.slice(offset), this.decodeChatMessage.bind(this));
+                        msg.c = chatResult.value;
+                        offset += chatResult.bytesRead;
+                    }
                     break;
 
                 case 'ls':
@@ -529,11 +537,33 @@
             var settingsResult = this.decodeChannelSettings(buffer.slice(offset));
             offset += settingsResult.bytesRead;
 
+            var channel = {
+                _id: _idResult.value,
+                settings: settingsResult.value
+            };
+
+            var hasCrown = this.decodeBoolean(buffer.slice(offset));
+            offset += hasCrown.bytesRead;
+
+            if (hasCrown.value) {
+                var participantIdResult = this.decodeString(buffer.slice(offset));
+                offset += participantIdResult.bytesRead;
+
+                var userIdResult = this.decodeString(buffer.slice(offset));
+                offset += userIdResult.bytesRead;
+
+                var timeResult = this.decodeNumber(buffer.slice(offset));
+                offset += timeResult.bytesRead;
+
+                channel.crown = {
+                    participantId: participantIdResult.value,
+                    userId: userIdResult.value,
+                    time: timeResult.value
+                };
+            }
+
             return {
-                value: {
-                    _id: _idResult.value,
-                    settings: settingsResult.value
-                },
+                value: channel,
                 bytesRead: offset
             };
         },
@@ -625,6 +655,32 @@
                     a: aResult.value,
                     allowance: allowanceResult.value
                 },
+                bytesRead: offset
+            };
+        },
+
+        decodeChatMessage: function(buffer) {
+            var offset = 0;
+
+            var aResult = this.decodeString(buffer.slice(offset));
+            offset += aResult.bytesRead;
+
+            var tResult = this.decodeNumber(buffer.slice(offset));
+            offset += tResult.bytesRead;
+
+            var msg = {
+                a: aResult.value,
+                t: tResult.value
+            };
+
+            if (offset < buffer.byteLength) {
+                var pResult = this.decodeParticipant(buffer.slice(offset));
+                msg.p = pResult.value;
+                offset += pResult.bytesRead;
+            }
+
+            return {
+                value: msg,
                 bytesRead: offset
             };
         },

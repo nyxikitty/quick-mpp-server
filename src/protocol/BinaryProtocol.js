@@ -428,10 +428,21 @@ class BinaryProtocol {
     }
 
     static encodeChannel(ch) {
-        return Buffer.concat([
+        const parts = [
             this.encodeString(ch._id),
             this.encodeChannelSettings(ch.settings || {})
-        ]);
+        ];
+
+        if (ch.crown) {
+            parts.push(this.encodeBoolean(true));
+            parts.push(this.encodeString(ch.crown.participantId || ''));
+            parts.push(this.encodeString(ch.crown.userId || ''));
+            parts.push(this.encodeNumber(ch.crown.time || 0));
+        } else {
+            parts.push(this.encodeBoolean(false));
+        }
+
+        return Buffer.concat(parts);
     }
 
     static encodeChannelInfo(ch) {
