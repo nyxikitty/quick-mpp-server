@@ -1,3 +1,6 @@
+const BinaryProtocol = require("../protocol/BinaryProtocol");
+const WebSocket = require('ws');
+
 class ChannelManager {
     constructor(server) {
         this.server = server;
@@ -23,15 +26,16 @@ class ChannelManager {
 
         const ban = this.server.bannedUsers.get(client.userId || clientId);
         if (ban && ban.channelId === channelId && ban.expiry > Date.now()) {
+            const banMessage = BinaryProtocol.encodeMultiple([{
+                m: 'notification',
+                id: `Notification-ban-${Date.now()}`,
+                title: '',
+                text: `You are banned from ${channelId} until ${new Date(ban.expiry).toISOString()}.`,
+                class: 'short',
+                duration: 5000
+            }]);
             for (const [_, ws] of client.connections) {
-                ws.send(JSON.stringify([{
-                    m: 'notification',
-                    id: `Notification-ban-${Date.now()}`,
-                    title: '',
-                    text: `You are banned from ${channelId} until ${new Date(ban.expiry).toISOString()}.`,
-                    class: 'short',
-                    duration: 5000
-                }]));
+                ws.send(banMessage);
             }
             return;
         }
@@ -118,23 +122,25 @@ class ChannelManager {
 
         const ppl = Array.from(channel.participants.values());
 
-        for (const [_, ws] of client.connections) {
-            ws.send(JSON.stringify([
-                {
-                    m: 'ch',
-                    ch: {
-                        _id: channelId,
-                        settings: channel.settings,
-                        crown: channel.crown
-                    },
-                    ppl,
-                    p: clientId
+        const channelData = BinaryProtocol.encodeMultiple([
+            {
+                m: 'ch',
+                ch: {
+                    _id: channelId,
+                    settings: channel.settings,
+                    crown: channel.crown
                 },
-                {
-                    m: 'c',
-                    c: channel.chatHistory
-                }
-            ]));
+                ppl,
+                p: clientId
+            },
+            {
+                m: 'c',
+                c: channel.chatHistory
+            }
+        ]);
+
+        for (const [_, ws] of client.connections) {
+            ws.send(channelData);
         }
 
         this.broadcastToChannel(channelId, [{
@@ -232,11 +238,13 @@ class ChannelManager {
             }
         }
 
+        const data = BinaryProtocol.encodeMultiple(messages);
+
         for (const [clientId, client] of this.server.clients) {
             if (client.channelId === channelId && clientId !== excludeClientId) {
                 for (const [_, ws] of client.connections) {
                     if (ws.readyState === WebSocket.OPEN) {
-                        ws.send(JSON.stringify(messages));
+                        ws.send(data);
                     }
                 }
             }
@@ -258,10 +266,16 @@ class ChannelManager {
             }]
         };
 
+        const data = BinaryProtocol.encodeMultiple([message]);
+
         for (const clientId of this.server.subscribedToLs) {
             const client = this.server.clients.get(clientId);
-            if (client && client.ws.readyState === WebSocket.OPEN) {
-                client.ws.send(JSON.stringify([message]));
+            if (client && client.connections) {
+                for (const [_, ws] of client.connections) {
+                    if (ws.readyState === WebSocket.OPEN) {
+                        ws.send(data);
+                    }
+                }
             }
         }
     }

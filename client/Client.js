@@ -112,6 +112,7 @@ Client.prototype.connect = function() {
 	});
 	this.ws.addEventListener("open", function(evt) {
 		self.connectionTime = Date.now();
+		self.ws.binaryType = 'arraybuffer';
 		self.sendArray([{"m": "hi", "🐈": self['🐈']++ || undefined }]);
 		self.pingInterval = setInterval(function() {
 			self.sendArray([{m: "t", e: Date.now()}]);
@@ -131,7 +132,13 @@ Client.prototype.connect = function() {
 		self.emit("status", "Joining channel...");
 	});
 	this.ws.addEventListener("message", function(evt) {
-		var transmission = JSON.parse(evt.data);
+		var transmission;
+		if (evt.data instanceof ArrayBuffer) {
+			transmission = BinaryProtocol.decode(evt.data);
+		} else {
+			// Fallback to JSON for backwards compatibility
+			transmission = JSON.parse(evt.data);
+		}
 		for(var i = 0; i < transmission.length; i++) {
 			var msg = transmission[i];
 			self.emit(msg.m, msg);
@@ -177,7 +184,7 @@ Client.prototype.send = function(raw) {
 };
 
 Client.prototype.sendArray = function(arr) {
-	this.send(JSON.stringify(arr));
+	this.send(BinaryProtocol.encodeMultiple(arr));
 };
 
 Client.prototype.setName = function(name) {
